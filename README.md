@@ -58,9 +58,26 @@ Below is the environment configuration template (`.env.example`):
 # For Android Emulator: http://10.0.2.2:3000
 # For Real Mobile Devices: http://<YOUR_LOCAL_IP>:3000
 EXPO_PUBLIC_API_URL=http://10.0.2.2:3000
+
+# GitHub OAuth Client ID (for real social login)
+EXPO_PUBLIC_GITHUB_CLIENT_ID=
 ```
 
 *Note: Our API service features **Zero-Config Dynamic LAN IP Resolution**. If you run the app on a physical device over Wi-Fi, it will automatically detect the local network IP of your workstation from the bundle URL and replace `10.0.2.2` or `localhost` dynamically so that the app connects to the API automatically.*
+
+### 🛠️ Setting up GitHub OAuth Social Login
+You can use GitHub social login in two modes:
+1. **Sandbox mode (default)**: You do not need to configure anything. Clicking **"Simulate Login (Sandbox)"** on the login screen automatically logs you in with a mock profile.
+2. **Real OAuth mode**:
+   - Register a new OAuth Application on [GitHub Developer Settings](https://github.com/settings/developers).
+   - Set **Homepage URL** to `https://expo.dev`.
+   - Set **Authorization callback URL** to:
+     - For local development: `taskify://redirect` (custom scheme config) or standard Expo Go redirect scheme proxy: `https://auth.expo.io/@your-expo-username/frontend`.
+   - Copy your Client ID and Client Secret from GitHub.
+   - Configure your keys in your `.env` files:
+     - In [frontend/.env](file:///c:/Users/user/Desktop/Ken/tests/taskify/frontend/.env), set `EXPO_PUBLIC_GITHUB_CLIENT_ID=your_client_id_here`.
+     - In [backend/.env](file:///c:/Users/user/Desktop/Ken/tests/taskify/backend/.env), set `GITHUB_CLIENT_ID=your_client_id_here` and `GITHUB_CLIENT_SECRET=your_client_secret_here`.
+   - Restart the backend and frontend dev servers. You will now be able to log in using real GitHub accounts by clicking **"Real OAuth Login"**.
 
 ---
 

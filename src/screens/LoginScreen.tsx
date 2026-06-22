@@ -13,9 +13,13 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { useAuthStore } from '../store/authStore';
 import { COLORS, SPACING, ROUNDED } from '../utils/theme';
+
+WebBrowser.maybeCompleteAuthSession();
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -26,6 +30,36 @@ export default function LoginScreen({ navigation }: Props) {
   const [passwordFocus, setPasswordFocus] = useState(false);
 
   const { login, socialLogin, isLoading, error, clearError } = useAuthStore();
+
+  // Hook up GitHub AuthSession
+  const [request, response, promptAsync] = AuthSession.useAuthRequest(
+    {
+      clientId: process.env.EXPO_PUBLIC_GITHUB_CLIENT_ID || '',
+      scopes: ['read:user', 'user:email'],
+      redirectUri: AuthSession.makeRedirectUri({
+        scheme: 'taskify',
+      }),
+    },
+    {
+      authorizationEndpoint: 'https://github.com/login/oauth/authorize',
+      tokenEndpoint: 'https://github.com/login/oauth/access_token',
+    }
+  );
+
+  React.useEffect(() => {
+    if (response?.type === 'success' && response.params?.code) {
+      const { code } = response.params;
+      handleGitHubOAuthSuccess(code);
+    }
+  }, [response]);
+
+  const handleGitHubOAuthSuccess = async (code: string) => {
+    try {
+      await socialLogin('github', { code });
+    } catch (e: any) {
+      Alert.alert('GitHub Login Error', e.message || 'Failed to authenticate via GitHub OAuth.');
+    }
+  };
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
@@ -47,37 +81,66 @@ export default function LoginScreen({ navigation }: Props) {
   };
 
   const handleSocialLogin = (provider: 'google' | 'github') => {
-    Alert.alert(
-      `Sandbox Social Login`,
-      `Would you like to simulate logging in with ${provider === 'google' ? 'Google' : 'GitHub'}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Proceed',
-          onPress: async () => {
-            try {
-              if (provider === 'google') {
+    if (provider === 'google') {
+      Alert.alert(
+        `Sandbox Social Login`,
+        `Would you like to simulate logging in with Google?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Proceed',
+            onPress: async () => {
+              try {
                 await socialLogin('google', {
                   idToken: 'mock-google-token',
                   email: 'mock-google-user@example.com',
                   name: 'Jane Google',
                   avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
                 });
-              } else {
+              } catch (e: any) {
+                Alert.alert('Social Auth Error', e.message || 'Failed to authenticate.');
+              }
+            },
+          },
+        ]
+      );
+    } else {
+      Alert.alert(
+        `GitHub Authentication`,
+        `Select your login flow:`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Simulate Login (Sandbox)',
+            onPress: async () => {
+              try {
                 await socialLogin('github', {
                   accessToken: 'mock-github-token',
                   email: 'mock-github-user@example.com',
                   name: 'John GitHub',
                   avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
                 });
+              } catch (e: any) {
+                Alert.alert('Social Auth Error', e.message || 'Failed to authenticate.');
               }
-            } catch (e: any) {
-              Alert.alert('Social Auth Error', e.message || 'Failed to authenticate.');
-            }
+            },
           },
-        },
-      ]
-    );
+          {
+            text: 'Real OAuth Login',
+            onPress: async () => {
+              try {
+                const result = await promptAsync();
+                if (result?.type !== 'success') {
+                  Alert.alert('Authentication Info', 'GitHub authentication flow closed or cancelled.');
+                }
+              } catch (e: any) {
+                Alert.alert('OAuth Error', e.message || 'Failed to start GitHub OAuth flow.');
+              }
+            },
+          },
+        ]
+      );
+    }
   };
 
   return (

@@ -25,6 +25,7 @@ interface AuthState {
     payload: {
       idToken?: string;
       accessToken?: string;
+      code?: string;
       email?: string;
       providerId?: string;
       name?: string;

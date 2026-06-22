@@ -21,6 +21,20 @@ import { registerForPushNotificationsAsync, scheduleTaskReminder, cancelTaskRemi
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
 
+const formatDateToInput = (dateInput?: string | Date | null) => {
+  if (!dateInput) return '';
+  const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+  if (isNaN(date.getTime())) return '';
+  
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const yyyy = date.getFullYear();
+  const mm = pad(date.getMonth() + 1);
+  const dd = pad(date.getDate());
+  const hh = pad(date.getHours());
+  const min = pad(date.getMinutes());
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+};
+
 export default function DashboardScreen({ navigation }: Props) {
   const { user } = useAuthStore();
   const {
@@ -51,7 +65,9 @@ export default function DashboardScreen({ navigation }: Props) {
     setEditingTask(null);
     setTitle('');
     setDescription('');
-    setDueDate(new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]); // Default to tomorrow
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    tomorrow.setHours(12, 0, 0, 0); // Default to tomorrow at 12:00 PM
+    setDueDate(formatDateToInput(tomorrow));
     setModalVisible(true);
   };
 
@@ -59,7 +75,7 @@ export default function DashboardScreen({ navigation }: Props) {
     setEditingTask(task);
     setTitle(task.title);
     setDescription(task.description);
-    setDueDate(task.dueDate ? task.dueDate.split('T')[0] : '');
+    setDueDate(formatDateToInput(task.dueDate));
     setModalVisible(true);
   };
 
@@ -71,12 +87,13 @@ export default function DashboardScreen({ navigation }: Props) {
 
     let formattedDueDate: string | null = null;
     if (dueDate.trim()) {
-      const parsedDate = new Date(dueDate.trim());
-      if (isNaN(parsedDate.getTime())) {
-        Alert.alert('Validation Error', 'Please enter a valid date in YYYY-MM-DD format.');
+      const parsedDate = new Date(dueDate.trim().replace(' ', 'T'));
+      const finalDate = isNaN(parsedDate.getTime()) ? new Date(dueDate.trim()) : parsedDate;
+      if (isNaN(finalDate.getTime())) {
+        Alert.alert('Validation Error', 'Please enter a valid date and time in YYYY-MM-DD HH:MM format.');
         return;
       }
-      formattedDueDate = parsedDate.toISOString();
+      formattedDueDate = finalDate.toISOString();
     }
 
     try {
@@ -97,7 +114,6 @@ export default function DashboardScreen({ navigation }: Props) {
         // Create new task
         // Get temp ID if offline, otherwise server generates it.
         // Zustand store manages this.
-        const originalCount = tasks.length;
         await createTask(title.trim(), description.trim(), formattedDueDate);
 
         // Find the newly created task (first in list)
@@ -176,7 +192,7 @@ export default function DashboardScreen({ navigation }: Props) {
           )}
           {item.dueDate && (
             <Text style={styles.taskDueDate}>
-              📅 Due: {new Date(item.dueDate).toLocaleDateString()}
+              📅 Due: {new Date(item.dueDate).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
             </Text>
           )}
         </View>
@@ -293,10 +309,10 @@ export default function DashboardScreen({ navigation }: Props) {
               numberOfLines={3}
             />
 
-            <Text style={styles.inputLabel}>Due Date (YYYY-MM-DD)</Text>
+            <Text style={styles.inputLabel}>Due Date & Time (YYYY-MM-DD HH:MM)</Text>
             <TextInput
               style={styles.modalInput}
-              placeholder="e.g. 2026-06-25"
+              placeholder="e.g. 2026-06-25 15:30"
               placeholderTextColor={COLORS.textSecondary}
               value={dueDate}
               onChangeText={setDueDate}
@@ -305,27 +321,33 @@ export default function DashboardScreen({ navigation }: Props) {
             <View style={styles.quickDateContainer}>
               <TouchableOpacity
                 style={styles.quickDateButton}
-                onPress={() => setDueDate(new Date().toISOString().split('T')[0])}
+                onPress={() => {
+                  const today = new Date();
+                  today.setHours(12, 0, 0, 0);
+                  setDueDate(formatDateToInput(today));
+                }}
               >
-                <Text style={styles.quickDateText}>Today</Text>
+                <Text style={styles.quickDateText}>Today 12:00</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.quickDateButton}
-                onPress={() =>
-                  setDueDate(new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0])
-                }
+                onPress={() => {
+                  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+                  tomorrow.setHours(12, 0, 0, 0);
+                  setDueDate(formatDateToInput(tomorrow));
+                }}
               >
-                <Text style={styles.quickDateText}>Tomorrow</Text>
+                <Text style={styles.quickDateText}>Tomorrow 12:00</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.quickDateButton}
-                onPress={() =>
-                  setDueDate(
-                    new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-                  )
-                }
+                onPress={() => {
+                  const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                  nextWeek.setHours(12, 0, 0, 0);
+                  setDueDate(formatDateToInput(nextWeek));
+                }}
               >
-                <Text style={styles.quickDateText}>Next Week</Text>
+                <Text style={styles.quickDateText}>Next Week 12:00</Text>
               </TouchableOpacity>
             </View>
 
