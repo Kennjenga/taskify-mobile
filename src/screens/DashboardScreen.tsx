@@ -9,9 +9,11 @@ import {
   Modal,
   TextInput,
   Alert,
-  SafeAreaView,
   StatusBar,
+  RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import NetInfo from '@react-native-community/netinfo';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { useTaskStore, Task } from '../store/taskStore';
@@ -46,6 +48,7 @@ export default function DashboardScreen({ navigation }: Props) {
     updateTask,
     deleteTask,
     toggleTaskCompletion,
+    setOfflineStatus,
   } = useTaskStore();
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -59,6 +62,16 @@ export default function DashboardScreen({ navigation }: Props) {
   useEffect(() => {
     fetchTasks();
     registerForPushNotificationsAsync();
+
+    // Subscribe to network connection state changes
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      const isOnline = !!state.isConnected && state.isInternetReachable !== false;
+      setOfflineStatus(!isOnline);
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const openAddModal = () => {
@@ -253,7 +266,17 @@ export default function DashboardScreen({ navigation }: Props) {
           <Text style={styles.emptySub}>Tap the button below to add your first task!</Text>
         </View>
       ) : (
-        <ScrollView style={styles.listContainer}>
+        <ScrollView 
+          style={styles.listContainer}
+          refreshControl={
+            <RefreshControl
+              refreshing={isLoading}
+              onRefresh={fetchTasks}
+              colors={[COLORS.primary]}
+              tintColor={COLORS.primaryLight}
+            />
+          }
+        >
           {sections.map((section) => {
             if (section.data.length === 0) return null;
             return (
