@@ -80,66 +80,14 @@ export default function LoginScreen({ navigation }: Props) {
     }
   };
 
-  const handleSocialLogin = (provider: 'google' | 'github') => {
-    if (provider === 'google') {
-      Alert.alert(
-        `Sandbox Social Login`,
-        `Would you like to simulate logging in with Google?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Proceed',
-            onPress: async () => {
-              try {
-                await socialLogin('google', {
-                  idToken: 'mock-google-token',
-                  email: 'mock-google-user@example.com',
-                  name: 'Jane Google',
-                  avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-                });
-              } catch (e: any) {
-                Alert.alert('Social Auth Error', e.message || 'Failed to authenticate.');
-              }
-            },
-          },
-        ]
-      );
-    } else {
-      Alert.alert(
-        `GitHub Authentication`,
-        `Select your login flow:`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Simulate Login (Sandbox)',
-            onPress: async () => {
-              try {
-                await socialLogin('github', {
-                  accessToken: 'mock-github-token',
-                  email: 'mock-github-user@example.com',
-                  name: 'John GitHub',
-                  avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
-                });
-              } catch (e: any) {
-                Alert.alert('Social Auth Error', e.message || 'Failed to authenticate.');
-              }
-            },
-          },
-          {
-            text: 'Real OAuth Login',
-            onPress: async () => {
-              try {
-                const result = await promptAsync();
-                if (result?.type !== 'success') {
-                  Alert.alert('Authentication Info', 'GitHub authentication flow closed or cancelled.');
-                }
-              } catch (e: any) {
-                Alert.alert('OAuth Error', e.message || 'Failed to start GitHub OAuth flow.');
-              }
-            },
-          },
-        ]
-      );
+  const handleSocialLogin = async () => {
+    try {
+      const result = await promptAsync();
+      if (result?.type !== 'success') {
+        Alert.alert('Authentication Info', 'GitHub authentication flow closed or cancelled.');
+      }
+    } catch (e: any) {
+      Alert.alert('OAuth Error', e.message || 'Failed to start GitHub OAuth flow.');
     }
   };
 
@@ -226,14 +174,7 @@ export default function LoginScreen({ navigation }: Props) {
           <View style={styles.socialButtonsContainer}>
             <TouchableOpacity
               style={styles.socialButton}
-              onPress={() => handleSocialLogin('google')}
-            >
-              <Text style={styles.socialButtonText}>Google</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.socialButton}
-              onPress={() => handleSocialLogin('github')}
+              onPress={handleSocialLogin}
             >
               <Text style={styles.socialButtonText}>GitHub</Text>
             </TouchableOpacity>
@@ -348,10 +289,10 @@ const styles = StyleSheet.create({
   },
   socialButtonsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
   },
   socialButton: {
-    flex: 0.47,
+    flex: 1,
     backgroundColor: COLORS.card,
     borderWidth: 1,
     borderColor: COLORS.border,
