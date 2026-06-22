@@ -36,9 +36,7 @@ export default function LoginScreen({ navigation }: Props) {
     {
       clientId: process.env.EXPO_PUBLIC_GITHUB_CLIENT_ID || '',
       scopes: ['read:user', 'user:email'],
-      redirectUri: AuthSession.makeRedirectUri({
-        scheme: 'taskify',
-      }),
+      redirectUri: AuthSession.makeRedirectUri(),
     },
     {
       authorizationEndpoint: 'https://github.com/login/oauth/authorize',

@@ -4,22 +4,25 @@ import { Platform, NativeModules } from 'react-native';
 
 // Default to 10.0.2.2 (Android Emulator host IP) with fallback to localhost.
 // In a real environment, users configure this in EXPO_PUBLIC_API_URL.
-let BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:3000';
+const envUrl = process.env.EXPO_PUBLIC_API_URL;
+let BASE_URL = envUrl || 'http://10.0.2.2:3000';
 
-// If running on a physical device, detect host IP dynamically from Metro packager URL
-const scriptURL = NativeModules.SourceCode?.scriptURL;
-if (scriptURL) {
-  const match = scriptURL.match(/^https?:\/\/([^:/]+)/);
-  if (match && match[1]) {
-    const host = match[1];
-    // Check if the host is a LAN IP (excluding loopbacks like localhost/127.0.0.1 and the emulator default 10.0.2.2)
-    const isLanIP =
-      (host.startsWith('10.') && host !== '10.0.2.2') ||
-      host.startsWith('192.168.') ||
-      host.startsWith('172.');
+// Only dynamically resolve LAN IP if the user hasn't explicitly set EXPO_PUBLIC_API_URL
+if (!envUrl) {
+  const scriptURL = NativeModules.SourceCode?.scriptURL;
+  if (scriptURL) {
+    const match = scriptURL.match(/^https?:\/\/([^:/]+)/);
+    if (match && match[1]) {
+      const host = match[1];
+      // Check if the host is a LAN IP (excluding loopbacks like localhost/127.0.0.1 and the emulator default 10.0.2.2)
+      const isLanIP =
+        (host.startsWith('10.') && host !== '10.0.2.2') ||
+        host.startsWith('192.168.') ||
+        host.startsWith('172.');
 
-    if (isLanIP && (BASE_URL.includes('10.0.2.2') || BASE_URL.includes('localhost') || BASE_URL.includes('127.0.0.1'))) {
-      BASE_URL = BASE_URL.replace(/10\.0\.2\.2|localhost|127\.0\.0\.1/, host);
+      if (isLanIP) {
+        BASE_URL = BASE_URL.replace(/10\.0\.2\.2|localhost|127\.0\.0\.1/, host);
+      }
     }
   }
 }
